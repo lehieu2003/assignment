@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,8 +21,13 @@ Future<void> initDependencies() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 
+  // Secure Storage for sensitive tokens
+  const secureStorage = FlutterSecureStorage();
+  sl.registerLazySingleton<FlutterSecureStorage>(() => secureStorage);
+
+  // Network Client
   sl.registerLazySingleton<DioClient>(
-    () => DioClient(sharedPreferences: sl<SharedPreferences>()),
+    () => DioClient(secureStorage: sl<FlutterSecureStorage>()),
   );
 
   //! Feature - Auth
@@ -30,7 +36,7 @@ Future<void> initDependencies() async {
     () => AuthRemoteDataSourceImpl(dio: sl<DioClient>().dio),
   );
   sl.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(sharedPreferences: sl<SharedPreferences>()),
+    () => AuthLocalDataSourceImpl(secureStorage: sl<FlutterSecureStorage>()),
   );
 
   // Repository

@@ -1,4 +1,4 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/exceptions.dart';
 
@@ -10,41 +10,44 @@ abstract class AuthLocalDataSource {
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
-  final SharedPreferences sharedPreferences;
+  final FlutterSecureStorage secureStorage;
 
-  AuthLocalDataSourceImpl({required this.sharedPreferences});
+  AuthLocalDataSourceImpl({required this.secureStorage});
 
   @override
   Future<void> saveToken(String token) async {
     try {
-      await sharedPreferences.setString(AppConstants.tokenKey, token);
+      await secureStorage.write(key: AppConstants.tokenKey, value: token);
     } catch (e) {
-      throw CacheException(message: 'Failed to cache token');
+      throw CacheException(message: 'Failed to securely save token');
     }
   }
 
   @override
   Future<String?> getToken() async {
     try {
-      return sharedPreferences.getString(AppConstants.tokenKey);
+      return await secureStorage.read(key: AppConstants.tokenKey);
     } catch (e) {
-      throw CacheException(message: 'Failed to retrieve cached token');
+      throw CacheException(message: 'Failed to retrieve securely saved token');
     }
   }
 
   @override
   Future<void> clearToken() async {
     try {
-      await sharedPreferences.remove(AppConstants.tokenKey);
-      await sharedPreferences.remove(AppConstants.userKey);
+      await secureStorage.delete(key: AppConstants.tokenKey);
+      await secureStorage.delete(key: AppConstants.userKey);
     } catch (e) {
-      throw CacheException(message: 'Failed to clear token');
+      throw CacheException(message: 'Failed to clear secure token');
     }
   }
 
   @override
   Future<bool> hasToken() async {
-    final token = sharedPreferences.getString(AppConstants.tokenKey);
-    return token != null && token.isNotEmpty;
+    try {
+      return await secureStorage.containsKey(key: AppConstants.tokenKey);
+    } catch (e) {
+      return false;
+    }
   }
 }
