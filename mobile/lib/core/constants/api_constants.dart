@@ -8,6 +8,7 @@ class ApiConstants {
   static const String register = '/auth/register';
   static const String login = '/auth/login/access-token';
   static const String me = '/auth/me';
+  static const String todos = '/todos/';
 
   static const int connectTimeout = 15000;
   static const int receiveTimeout = 15000;

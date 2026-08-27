@@ -14,6 +14,15 @@ import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
+import '../../features/home/data/datasources/todo_remote_data_source.dart';
+import '../../features/home/data/repositories/todo_repository_impl.dart';
+import '../../features/home/domain/repositories/todo_repository.dart';
+import '../../features/home/domain/usecases/create_todo_usecase.dart';
+import '../../features/home/domain/usecases/delete_todo_usecase.dart';
+import '../../features/home/domain/usecases/get_todos_usecase.dart';
+import '../../features/home/domain/usecases/update_todo_usecase.dart';
+import '../../features/home/presentation/bloc/home_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
@@ -64,4 +73,32 @@ Future<void> initDependencies() async {
       checkAuthStatusUseCase: sl<CheckAuthStatusUseCase>(),
     ),
   );
+
+  //! Feature - Home (Todo)
+  // Data sources
+  sl.registerLazySingleton<TodoRemoteDataSource>(
+    () => TodoRemoteDataSourceImpl(dio: sl<DioClient>().dio),
+  );
+
+  // Repository
+  sl.registerLazySingleton<TodoRepository>(
+    () => TodoRepositoryImpl(remoteDataSource: sl<TodoRemoteDataSource>()),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetTodosUseCase(sl<TodoRepository>()));
+  sl.registerLazySingleton(() => CreateTodoUseCase(sl<TodoRepository>()));
+  sl.registerLazySingleton(() => UpdateTodoUseCase(sl<TodoRepository>()));
+  sl.registerLazySingleton(() => DeleteTodoUseCase(sl<TodoRepository>()));
+
+  // Bloc
+  sl.registerFactory(
+    () => HomeBloc(
+      getTodosUseCase: sl<GetTodosUseCase>(),
+      createTodoUseCase: sl<CreateTodoUseCase>(),
+      updateTodoUseCase: sl<UpdateTodoUseCase>(),
+      deleteTodoUseCase: sl<DeleteTodoUseCase>(),
+    ),
+  );
 }
+
