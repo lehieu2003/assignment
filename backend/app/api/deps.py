@@ -25,10 +25,17 @@ def get_current_user(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
+        if token_data.type and token_data.type != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type for access authentication",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     except (JWTError, ValidationError):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials or token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     user = UserService.get_by_id(db, user_id=int(token_data.sub)) if token_data.sub else None
     if not user:

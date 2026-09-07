@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str
     API_V1_STR: str
     SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str

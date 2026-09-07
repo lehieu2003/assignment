@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.database import get_db
-from app.core.security import create_access_token
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
-from app.schemas.token import Token
+from app.schemas.token import Token, RefreshTokenRequest
 from app.services.user_service import UserService
+from app.services.auth_service import AuthService
 
 router = APIRouter()
 
@@ -43,10 +43,24 @@ def login_access_token(
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    return {
-        "access_token": create_access_token(user.id),
-        "token_type": "bearer",
-    }
+    return AuthService.create_token_pair(db, user_id=user.id)
+
+
+@router.post("/refresh-token", response_model=Token)
+def refresh_token(
+    request: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+) -> Any:
+    return AuthService.rotate_refresh_token(db, refresh_token_str=request.refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(
+    request: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+) -> Any:
+    AuthService.revoke_refresh_token(db, refresh_token_str=request.refresh_token)
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/me", response_model=UserResponse)
@@ -54,3 +68,4 @@ def read_user_me(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     return current_user
+
