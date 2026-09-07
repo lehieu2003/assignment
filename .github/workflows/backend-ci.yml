@@ -1,0 +1,74 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  backend-test:
+    name: Lint & Database Migration Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fastapi_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Check Python Syntax & Compile
+        run: |
+          python -m compileall backend/app backend/alembic
+
+      - name: Test Database Migration (Alembic)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fastapi_db
+          SECRET_KEY: test_secret_key_ci_environment_1234567890
+          PROJECT_NAME: Fullstack Demo API
+          API_V1_STR: /api/v1
+          ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          REFRESH_TOKEN_EXPIRE_DAYS: 7
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: fastapi_db
+          CORS_ORIGINS: '["*"]'
+        run: |
+          cd backend
+          alembic upgrade head

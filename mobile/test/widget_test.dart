@@ -1,30 +1,44 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:mobile_app/main.dart';
+import 'package:mobile_app/features/auth/data/models/auth_token_model.dart';
+import 'package:mobile_app/features/home/presentation/bloc/home_state.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('AuthTokenModel Test', () {
+    test('should parse json correctly with refresh_token', () {
+      final json = {
+        'access_token': 'access_123',
+        'refresh_token': 'refresh_456',
+        'token_type': 'bearer',
+      };
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      final model = AuthTokenModel.fromJson(json);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      expect(model.accessToken, 'access_123');
+      expect(model.refreshToken, 'refresh_456');
+      expect(model.tokenType, 'bearer');
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('toJson should return correct map', () {
+      const model = AuthTokenModel(
+        accessToken: 'access_123',
+        refreshToken: 'refresh_456',
+        tokenType: 'bearer',
+      );
+
+      final json = model.toJson();
+
+      expect(json['access_token'], 'access_123');
+      expect(json['refresh_token'], 'refresh_456');
+      expect(json['token_type'], 'bearer');
+    });
+  });
+
+  group('HomeState Test', () {
+    test('copyWith should clear actionMessage when clearActionMessage is true', () {
+      const state = HomeState(actionMessage: 'Đã thêm công việc!');
+      final newState = state.copyWith(clearActionMessage: true);
+
+      expect(newState.actionMessage, isNull);
+    });
   });
 }
