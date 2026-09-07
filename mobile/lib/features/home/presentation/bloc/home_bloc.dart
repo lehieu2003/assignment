@@ -32,7 +32,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (!event.isRefresh) {
-      emit(state.copyWith(status: HomeStatus.loading, clearErrorMessage: true));
+      emit(state.copyWith(
+        status: HomeStatus.loading,
+        clearErrorMessage: true,
+        clearActionMessage: true,
+      ));
     }
 
     final result = await getTodosUseCase(const GetTodosParams());
@@ -40,11 +44,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       (failure) => emit(state.copyWith(
         status: HomeStatus.failure,
         errorMessage: failure.message,
+        clearActionMessage: true,
       )),
       (todos) => emit(state.copyWith(
         status: HomeStatus.success,
         todos: todos,
         clearErrorMessage: true,
+        clearActionMessage: true,
       )),
     );
   }
@@ -174,13 +180,21 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     ChangeFilterEvent event,
     Emitter<HomeState> emit,
   ) {
-    emit(state.copyWith(filter: event.filter));
+    emit(state.copyWith(
+      filter: event.filter,
+      clearActionMessage: true,
+      clearErrorMessage: true,
+    ));
   }
 
   void _onSearchTodos(
     SearchTodosEvent event,
     Emitter<HomeState> emit,
   ) {
-    emit(state.copyWith(searchQuery: event.query));
+    emit(state.copyWith(
+      searchQuery: event.query,
+      clearActionMessage: true,
+      clearErrorMessage: true,
+    ));
   }
 }

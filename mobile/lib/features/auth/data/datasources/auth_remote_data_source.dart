@@ -8,6 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<AuthTokenModel> login(String email, String password);
   Future<UserModel> register(String email, String password, String? fullName);
   Future<UserModel> getCurrentUser();
+  Future<void> logout(String refreshToken);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -99,6 +100,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } catch (e) {
       throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> logout(String refreshToken) async {
+    try {
+      await dio.post(
+        ApiConstants.logout,
+        data: {'refresh_token': refreshToken},
+      );
+    } catch (_) {
+      // Ignore network failures on logout so user is still logged out locally
     }
   }
 }

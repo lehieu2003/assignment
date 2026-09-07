@@ -7,6 +7,8 @@ class ApiConstants {
   static const String health = '/health/';
   static const String register = '/auth/register';
   static const String login = '/auth/login/access-token';
+  static const String refreshToken = '/auth/refresh-token';
+  static const String logout = '/auth/logout';
   static const String me = '/auth/me';
   static const String todos = '/todos/';
 

@@ -20,7 +20,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, AuthToken>> login(String email, String password) async {
     try {
       final tokenModel = await remoteDataSource.login(email, password);
-      await localDataSource.saveToken(tokenModel.accessToken);
+      await localDataSource.saveTokens(
+        accessToken: tokenModel.accessToken,
+        refreshToken: tokenModel.refreshToken,
+      );
       return Right(tokenModel);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
@@ -59,6 +62,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
+      final refreshToken = await localDataSource.getRefreshToken();
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await remoteDataSource.logout(refreshToken);
+      }
       await localDataSource.clearToken();
       return const Right(null);
     } on CacheException catch (e) {
