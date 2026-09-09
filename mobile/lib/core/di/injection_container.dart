@@ -31,7 +31,14 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 
   // Secure Storage for sensitive tokens
-  const secureStorage = FlutterSecureStorage();
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock,
+    ),
+  );
   sl.registerLazySingleton<FlutterSecureStorage>(() => secureStorage);
 
   // Network Client

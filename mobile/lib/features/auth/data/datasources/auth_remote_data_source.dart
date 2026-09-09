@@ -21,13 +21,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dio.post(
         ApiConstants.login,
-        data: {
-          'username': email,
-          'password': password,
-        },
-        options: Options(
-          contentType: Headers.formUrlEncodedContentType,
-        ),
+        data: {'username': email, 'password': password},
+        options: Options(contentType: Headers.formUrlEncodedContentType),
       );
 
       if (response.statusCode == 200) {
@@ -39,7 +34,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       }
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw ServerException(
         message: detail?.toString() ?? 'Network error during login',
         statusCode: e.response?.statusCode,
@@ -50,15 +47,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> register(String email, String password, String? fullName) async {
+  Future<UserModel> register(
+    String email,
+    String password,
+    String? fullName,
+  ) async {
     try {
       final response = await dio.post(
         ApiConstants.register,
-        data: {
-          'email': email,
-          'password': password,
-          'full_name': fullName,
-        },
+        data: {'email': email, 'password': password, 'full_name': fullName},
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -70,7 +67,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       }
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw ServerException(
         message: detail?.toString() ?? 'Network error during registration',
         statusCode: e.response?.statusCode,
@@ -93,7 +92,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       }
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw ServerException(
         message: detail?.toString() ?? 'Network error',
         statusCode: e.response?.statusCode,

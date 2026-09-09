@@ -3,7 +3,10 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/exceptions.dart';
 
 abstract class AuthLocalDataSource {
-  Future<void> saveTokens({required String accessToken, required String refreshToken});
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  });
   Future<String?> getToken();
   Future<String?> getRefreshToken();
   Future<void> clearToken();
@@ -16,10 +19,16 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   AuthLocalDataSourceImpl({required this.secureStorage});
 
   @override
-  Future<void> saveTokens({required String accessToken, required String refreshToken}) async {
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     try {
       await secureStorage.write(key: AppConstants.tokenKey, value: accessToken);
-      await secureStorage.write(key: AppConstants.refreshTokenKey, value: refreshToken);
+      await secureStorage.write(
+        key: AppConstants.refreshTokenKey,
+        value: refreshToken,
+      );
     } catch (e) {
       throw CacheException(message: 'Failed to securely save tokens');
     }
@@ -39,7 +48,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     try {
       return await secureStorage.read(key: AppConstants.refreshTokenKey);
     } catch (e) {
-      throw CacheException(message: 'Failed to retrieve securely saved refresh token');
+      throw CacheException(
+        message: 'Failed to retrieve securely saved refresh token',
+      );
     }
   }
 
@@ -63,4 +74,3 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     }
   }
 }
-

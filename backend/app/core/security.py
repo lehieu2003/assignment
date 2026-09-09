@@ -1,4 +1,5 @@
-import uuid
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union, Optional, Tuple, Dict
 from jose import jwt, JWTError
@@ -16,6 +17,11 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+def hash_token(token: str) -> str:
+    """Hashes an opaque token string with SHA-256 for secure database storage/lookup."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -28,24 +34,21 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
 
 
 def create_refresh_token(
-    subject: Union[str, Any],
     expires_delta: Optional[timedelta] = None,
-    jti: Optional[str] = None,
 ) -> Tuple[str, str, datetime]:
-    token_jti = jti or str(uuid.uuid4())
+    """
+    Generates a cryptographically secure opaque refresh token.
+    Returns: (raw_refresh_token, token_hash, expires_at)
+    """
+    raw_token = secrets.token_urlsafe(64)
+    token_hash = hash_token(raw_token)
+    
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-    to_encode = {
-        "exp": expire,
-        "sub": str(subject),
-        "jti": token_jti,
-        "type": "refresh",
-    }
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt, token_jti, expire
+    return raw_token, token_hash, expire
 
 
 def decode_token(token: str) -> Optional[Dict[str, Any]]:
@@ -54,4 +57,5 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
         return payload
     except JWTError:
         return None
+
 

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.security import (
     create_access_token,
     create_refresh_token,
-    decode_token,
+    hash_token,
 )
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
@@ -17,13 +17,13 @@ class AuthService:
     @staticmethod
     def create_token_pair(db: Session, user_id: int) -> Dict[str, Any]:
         """
-        Issues an initial access token and refresh token pair upon login.
+        Issues an initial access token and opaque refresh token pair upon login.
         """
         access_token = create_access_token(user_id)
-        refresh_token, jti, expire = create_refresh_token(user_id)
+        raw_refresh_token, token_hash, expire = create_refresh_token()
 
         token_record = RefreshToken(
-            token_jti=jti,
+            token_jti=token_hash,
             user_id=user_id,
             expires_at=expire,
             revoked=False,
@@ -33,57 +33,42 @@ class AuthService:
 
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token,
+            "refresh_token": raw_refresh_token,
             "token_type": "bearer",
         }
 
     @staticmethod
     def rotate_refresh_token(db: Session, refresh_token_str: str) -> Dict[str, Any]:
         """
-        Performs Refresh Token Rotation with Reuse Detection.
+        Performs Refresh Token Rotation with Reuse Detection for Opaque Tokens.
         - If the token is valid & not revoked:
             Rotates the token by invalidating it and issuing a new pair.
         - If the token was ALREADY REVOKED (Reuse attack detected):
             Immediately revokes all refresh tokens for that user.
         """
-        payload = decode_token(refresh_token_str)
-        if not payload or payload.get("type") != "refresh":
+        if not refresh_token_str or not refresh_token_str.strip():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired refresh token",
+                detail="Invalid or empty refresh token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        user_id_str = payload.get("sub")
-        jti = payload.get("jti")
-        if not user_id_str or not jti:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        try:
-            user_id = int(user_id_str)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid user subject in token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        token_hash = hash_token(refresh_token_str.strip())
 
         token_record = (
             db.query(RefreshToken)
-            .filter(RefreshToken.token_jti == jti)
+            .filter(RefreshToken.token_jti == token_hash)
             .first()
         )
 
         if not token_record:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token not recognized",
+                detail="Invalid or unrecognized refresh token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        user_id = token_record.user_id
 
         # Reuse Detection: If an already-revoked refresh token is sent,
         # someone might have stolen the token. Revoke all tokens for this user!
@@ -124,15 +109,15 @@ class AuthService:
 
         # Generate new pair and rotate
         new_access_token = create_access_token(user.id)
-        new_refresh_token, new_jti, new_expire = create_refresh_token(user.id)
+        new_raw_refresh_token, new_token_hash, new_expire = create_refresh_token()
 
         # Invalidate old token and link to replacement
         token_record.revoked = True
-        token_record.replaced_by = new_jti
+        token_record.replaced_by = new_token_hash
 
         # Save new active token
         new_record = RefreshToken(
-            token_jti=new_jti,
+            token_jti=new_token_hash,
             user_id=user.id,
             expires_at=new_expire,
             revoked=False,
@@ -142,7 +127,7 @@ class AuthService:
 
         return {
             "access_token": new_access_token,
-            "refresh_token": new_refresh_token,
+            "refresh_token": new_raw_refresh_token,
             "token_type": "bearer",
         }
 
@@ -151,10 +136,9 @@ class AuthService:
         """
         Explicitly revokes a refresh token (e.g. during logout).
         """
-        payload = decode_token(refresh_token_str)
-        if payload and payload.get("jti"):
-            jti = payload.get("jti")
-            db.query(RefreshToken).filter(RefreshToken.token_jti == jti).update(
+        if refresh_token_str and refresh_token_str.strip():
+            token_hash = hash_token(refresh_token_str.strip())
+            db.query(RefreshToken).filter(RefreshToken.token_jti == token_hash).update(
                 {RefreshToken.revoked: True}
             )
             db.commit()
